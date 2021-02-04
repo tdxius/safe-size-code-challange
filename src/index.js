@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 /*jshint esversion: 8 */
 const got = require('got');
 
@@ -5,14 +7,11 @@ const keepAliveAgent = new (require('https')).Agent({
 	keepAlive: true
 });
 
-const TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJTYWZlU2l6ZS9zdGFnZSIsImV4cCI6MTYxMzI0OTQ2MCwiYXVkIjoiUk9MRV9FV0VCIiwic3ViIjoic2FmZXNpemVUZXN0MTAiLCJwZHQiOiJCNTFweHB0anh1Ry9ENkZDT1FLSHd0VGR6SnUwVGF6eFhOZ1NnejZXVmF2U0w4b0k0Nk4wYmhLYkZ6dzhrZ0M3c0ZpelJtWTBkS2hDMFdodDJvSnRSWEx6bVZCeE1qbVdBUm02VVZhcUVMWWllMHRWOTl6OXpuRlVLU3VSL1ZJa3A0ZHk3Zm9iQ2NqM05RTTFYSHRldXd2bDdaUkcxdXkrRnNyeG8rUmtLRlB6NmsrVXpuNGxqeUsrNWZiaW1tUWgiLCJwcmlhcyI6IjkwMTAzIiwidGVuYW50IjoiOTAxMDMifQ.z--HFw_28o-Gwk4PejjOdyUGJMdMxwJXz5UNIdrShyE';
-const KEY = 456233;
-
 const client = got.extend({
-	prefixUrl: 'https://bmypmiaiwj.execute-api.eu-west-1.amazonaws.com/service02',
+	prefixUrl: process.env.API_BASE_URL,
 	searchParams: {
-		tkn: TOKEN,
-		key: KEY
+		tkn: process.env.API_TOKEN,
+		key: process.env.API_KEY,
 	},
 	agent: {
 		http: keepAliveAgent,

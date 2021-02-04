@@ -9,6 +9,7 @@
   "author": "Tadej Hribar",
   "license": "ISC",
   "dependencies": {
+    "dotenv": "^8.2.0",
     "got": "^11.8.1"
   }
 }
