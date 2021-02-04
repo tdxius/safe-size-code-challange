@@ -1,5 +1,4 @@
 /*jshint esversion: 8 */
-
 require('dotenv').config()
 
 const got = require('got');
@@ -96,7 +95,8 @@ async function getLogs(recomendationIds, date) {
 }
 
 (async () => {
-	let totalLogs = []
+	let totalLogs = [];
+	const outputPath = path.resolve(__dirname, '../output.json');
 
 	try {
 		const matchingDevices = await getDevices('20200513', '20201120');
@@ -115,8 +115,9 @@ async function getLogs(recomendationIds, date) {
 			}
 		}
 
-		fs.writeFileSync(path.resolve(__dirname, '../output.json'), JSON.stringify(totalLogs));
+		fs.writeFileSync(outputPath, JSON.stringify(totalLogs));
 		console.log('Logs in total:', totalLogs.length)
+		console.log('Logs saved at:', outputPath)
 	} catch (error) {
 		console.error(error);
 	}
