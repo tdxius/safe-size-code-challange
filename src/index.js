@@ -33,7 +33,7 @@ function extractDevices(dailySum) {
 				continue;
 		}
 
-		let device = key.substring(key.indexOf('#') + 1);
+		const device = key.substring(key.indexOf('#') + 1);
 		devices.push(device)
 	}
 
@@ -50,13 +50,13 @@ function endOfDay(date) {
 }
 
 async function getDevices(startDate, endDate) {
-	let searchParams = {
+	const searchParams = {
 		type: 'logID',
 		id: 'SUM#DAILY',
 		startTime: startDate,
 		endTime: endDate
 	};
-	let dailySums = await client.get('v1/test/dyndb', { searchParams }).json();
+	const dailySums = await client.get('v1/test/dyndb', { searchParams }).json();
 
 	let devices = {}
 	dailySums.forEach(dailySum => {
@@ -66,7 +66,7 @@ async function getDevices(startDate, endDate) {
 }
 
 async function getRecomendationIds(device, date) {
-	let searchParams = {
+	const searchParams = {
 		type: 'logDEVICE',
 		id: device,
 		startTime: startOfDay(date),
@@ -80,7 +80,7 @@ async function getRecomendationIds(device, date) {
 
 async function getLogs(recomendationIds, date) {
 	const requests = recomendationIds.map(async recomendationId => {
-		let searchParams = {
+		const searchParams = {
 			type: 'logID',
 			id: recomendationId,
 			startTime: startOfDay(date),
