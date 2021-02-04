@@ -99,11 +99,11 @@ async function getLogs(recomendationIds, date) {
 	const outputPath = path.resolve(__dirname, '../output.json');
 
 	try {
-		const matchingDevices = await getDevices('20200513', '20201120');
-		console.log('DEVICES', matchingDevices);
+		const devicesByDay = await getDevices('20200513', '20201120');
+		console.log('DEVICES', devicesByDay);
 
-		for (const date of Object.keys(matchingDevices).sort()) {
-			const devices = matchingDevices[date];
+		for (const date of Object.keys(devicesByDay).sort()) {
+			const devices = devicesByDay[date];
 
 			for (const device of devices) {
 				const recomendationIds = await getRecomendationIds(device, date)
