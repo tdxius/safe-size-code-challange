@@ -1,10 +1,16 @@
+/*jshint esversion: 8 */
+
 require('dotenv').config()
 
-/*jshint esversion: 8 */
 const got = require('got');
+const fs = require('fs');
+const path = require('path');
 
 const keepAliveAgent = new (require('https')).Agent({
-	keepAlive: true
+	keepAlive: true,
+	maxSockets: 100,
+	keepAliveMsecs: 5,
+	proxy: 'https://localhost:8080',
 });
 
 const client = got.extend({
@@ -20,7 +26,7 @@ const client = got.extend({
 	responseType: 'json'
 });
 
-function extractDeviceIds(dailySum) {
+function extractDevices(dailySum) {
 	const devices = [];
 
 	for (const [key] of Object.entries(dailySum)) {
@@ -35,6 +41,15 @@ function extractDeviceIds(dailySum) {
 	return devices
 }
 
+function startOfDay(date) {
+	return Date.UTC(date.substr(0, 4), date.substr(4, 2) - 1, date.substr(6));
+}
+
+function endOfDay(date) {
+	const startTime = startOfDay(date);
+	return startTime + 86400000 - 1;
+}
+
 async function getDevices(startDate, endDate) {
 	let searchParams = {
 		type: 'logID',
@@ -42,70 +57,67 @@ async function getDevices(startDate, endDate) {
 		startTime: startDate,
 		endTime: endDate
 	};
-	let resJson = await client.get('v1/test/dyndb', { searchParams }).json();
+	let dailySums = await client.get('v1/test/dyndb', { searchParams }).json();
 
-	let matchDev = {}
-	resJson.forEach(dailySum => {
-		matchDev[dailySum.amt] = extractDeviceIds(dailySum)
+	let devices = {}
+	dailySums.forEach(dailySum => {
+		devices[dailySum.amt] = extractDevices(dailySum)
 	});
-	return matchDev;
+	return devices;
 }
 
-
-async function getIDs(device, date) {
-	let startTime = Date.UTC(date.substr(0, 4), date.substr(4, 2) - 1, date.substr(6));
-	let endTime = startTime + 86400000 - 1;
-
+async function getRecomendationIds(device, date) {
 	let searchParams = {
 		type: 'logDEVICE',
 		id: device,
-		startTime,
-		endTime,
+		startTime: startOfDay(date),
+		endTime: endOfDay(date),
 	};
 
-	const recomendationIdLogs = await client.get('v1/test/dyndb', { searchParams }).json();
-	return recomendationIdLogs.map(({id}) => {
-		return id;
-		// const firstSplitIndex = id.indexOf('#') + 1
-		// return id.substring(firstSplitIndex, id.indexOf('#', firstSplitIndex));
-	})
+	const logs = await client.get('v1/test/dyndb', { searchParams }).json();
+	const ids = logs.map(({id}) => id);
+	return [...new Set(ids)];
 }
 
-async function getLog(recomendationId, date) {
-	let startTime = Date.UTC(date.substr(0, 4), date.substr(4, 2) - 1, date.substr(6));
-	let endTime = startTime + 86400000 - 1;
+async function getLogs(recomendationIds, date) {
+	const requests = recomendationIds.map(async recomendationId => {
+		let searchParams = {
+			type: 'logID',
+			id: recomendationId,
+			startTime: startOfDay(date),
+			endTime: endOfDay(date),
+		};
 
-	let searchParams = {
-		type: 'log',
-		id: recomendationId,
-		endTime,
-		startTime,
-	};
-	// console.log(searchParams)
-	return await client.get('v1/test/dyndb', { searchParams }).json();
+		return await client.get('v1/test/dyndb', { searchParams }).json();
+	})
+
+	const logs = await Promise.all(requests)
+	return logs.flat()
 }
 
 (async () => {
+	let totalLogs = []
+
 	try {
-		var matchingDevices = await getDevices('20200513', '20201120');
-		console.log('result', matchingDevices);
+		const matchingDevices = await getDevices('20200513', '20201120');
+		console.log('DEVICES', matchingDevices);
+
 		for (const date of Object.keys(matchingDevices).sort()) {
-			let devices = matchingDevices[date];
+			const devices = matchingDevices[date];
 
-			devices.forEach(async device => {
-				const recomendationIds = await getIDs(device, date)
-				recomendationIds.forEach(async recomendationId => {
-					try {
-						const logs = await getLog(recomendationId, date)
-						console.log(logs)
-					} catch (e) {
-						console.error(e)
-					}
-				})
-			})
+			for (const device of devices) {
+				const recomendationIds = await getRecomendationIds(device, date)
+				console.log(device, date, recomendationIds.length)
 
+				const logs = await getLogs(recomendationIds, date)
+				totalLogs = totalLogs.concat(logs)
+				console.log(logs.length, totalLogs.lenght)
+			}
 		}
-	} catch (err) {
-		console.error(err);
+
+		fs.writeFileSync(path.resolve(__dirname, '../output.json'), JSON.stringify(totalLogs));
+		console.log('Logs in total:', totalLogs.length)
+	} catch (error) {
+		console.error(error);
 	}
 })();
